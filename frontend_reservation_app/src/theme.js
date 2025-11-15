@@ -1,4 +1,5 @@
 //
+//
 // Champagne Theme configuration and CSS variables injection
 //
 
@@ -40,11 +41,52 @@ export function applyThemeCSSVariables() {
 }
 
 /**
- * Returns the current frontend URL from environment for use when needed by router or links.
- * No API integration is implemented yet.
+ * Compute a safe React Router basename from environment.
+ * Accepts REACT_APP_FRONTEND_URL which may be a full URL or a path.
+ * Returns a relative path suitable for BrowserRouter.basename, defaulting to "/".
+ *
+ * Examples:
+ * - "https://example.com/app" -> "/app"
+ * - "https://example.com/nested/app/" -> "/nested/app"
+ * - "/app" -> "/app"
+ * - "" or undefined -> "/"
+ */
+// PUBLIC_INTERFACE
+export function getRouterBasename() {
+  const env = process.env.REACT_APP_FRONTEND_URL;
+  if (!env || typeof env !== "string") return "/";
+
+  const s = env.trim();
+  // If it already looks like a path, normalize it and return
+  if (s.startsWith("/")) {
+    return normalizePathOnly(s);
+  }
+
+  // Try parsing as a URL and extract pathname
+  try {
+    const u = new URL(s);
+    return normalizePathOnly(u.pathname || "/");
+  } catch {
+    // Fallback: not a URL and not a path — use root
+    return "/";
+  }
+}
+
+/**
+ * Returns the frontend URL if set, otherwise empty string.
+ * Useful for displaying environment info; not for Router basename.
  */
 // PUBLIC_INTERFACE
 export function getFrontendBaseUrl() {
-  /** This uses REACT_APP_FRONTEND_URL if present, otherwise defaults to "/" */
-  return process.env.REACT_APP_FRONTEND_URL || "/";
+  return process.env.REACT_APP_FRONTEND_URL || "";
+}
+
+/** Ensure path-only format for basename: always starts with "/", no trailing "/". */
+function normalizePathOnly(pathname) {
+  const p = pathname.trim();
+  if (!p) return "/";
+  // Ensure leading slash
+  const withLead = p.startsWith("/") ? p : `/${p}`;
+  // Remove trailing slash except for root "/"
+  return withLead !== "/" && withLead.endsWith("/") ? withLead.slice(0, -1) : withLead;
 }

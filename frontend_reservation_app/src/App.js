@@ -3,7 +3,7 @@ import './App.css';
 import { BrowserRouter } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import AppRoutes from './router';
-import { applyThemeCSSVariables, getFrontendBaseUrl } from './theme';
+import { applyThemeCSSVariables, getRouterBasename } from './theme';
 
 // PUBLIC_INTERFACE
 function App() {
@@ -20,7 +20,8 @@ function App() {
     setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
   };
 
-  const basename = getFrontendBaseUrl();
+  // Derive a safe, relative basename so React Router matches paths correctly
+  const basename = getRouterBasename();
 
   return (
     <div className="App">
