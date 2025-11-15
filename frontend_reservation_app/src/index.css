@@ -1,13 +1,145 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+:root {
+  /* Fallbacks if theme.js injection hasn't run yet */
+  --color-primary: #D97706;
+  --color-secondary: #F3F4F6;
+  --color-background: #FFFBEB;
+  --color-surface: #FFFFFF;
+  --color-text: #374151;
+  --gradient-from: #FFFBEB;
+  --gradient-to: #FDE68A;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--color-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+  background: linear-gradient(135deg, var(--gradient-from), var(--gradient-to));
+}
+
+/* App-level containers */
+.bg-gradient {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 16px;
+}
+
+/* NavBar styles */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: saturate(180%) blur(8px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.brand-icon {
+  font-size: 18px;
+}
+
+.links {
+  display: flex;
+  gap: 12px;
+}
+
+.nav-link {
+  color: var(--color-text);
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.nav-link:hover {
+  background: var(--color-secondary);
+}
+
+.nav-link.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+/* Actions (theme toggle) */
+.actions .btn-toggle {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.actions .btn-toggle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(31, 41, 55, 0.08);
+}
+
+/* Page container styles */
+.page-container {
+  background: var(--color-surface);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.08);
+}
+
+.page-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  margin: -20px -20px 16px;
+  padding: 16px 20px;
+  background: linear-gradient(180deg, rgba(217, 119, 6, 0.08), transparent);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+.page-title {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+.page-subtitle {
+  margin: 0;
+  color: #6B7280; /* gray-500 */
+  font-size: 14px;
+}
+
+.page-content p {
+  margin: 0;
+  line-height: 1.6;
 }
