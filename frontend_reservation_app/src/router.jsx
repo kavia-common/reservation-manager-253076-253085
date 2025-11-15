@@ -4,6 +4,7 @@ import useFeatureFlags from "./hooks/useFeatureFlags";
 import useReservations from "./hooks/useReservations";
 import ReservationForm from "./components/ReservationForm";
 import ReservationList from "./components/ReservationList";
+import ReservationCalendar from "./components/ReservationCalendar";
 import Toast from "./components/Toast";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
@@ -31,6 +32,9 @@ export function ReservationsPage() {
   );
   const [pollMs, setPollMs] = useState(pollingDefault);
   const [submitting, setSubmitting] = useState(false);
+  const [viewMode, setViewMode] = useState(
+    isEnabled("calendarView") ? "calendar" : "list"
+  );
 
   const {
     data,
@@ -134,6 +138,52 @@ export function ReservationsPage() {
     // Here we rely on backend to use query in subsequent refreshes; keep manual refresh button.
   };
 
+  const renderViewTabs = () => {
+    if (!isEnabled("calendarView")) return null;
+    return (
+      <div
+        role="tablist"
+        aria-label="Reservations view"
+        style={{
+          display: "inline-flex",
+          border: "1px solid rgba(0,0,0,0.06)",
+          borderRadius: 999,
+          overflow: "hidden",
+          background: "var(--color-surface)",
+          boxShadow: "0 4px 12px rgba(31,41,55,0.08)",
+          marginLeft: 8,
+        }}
+      >
+        <button
+          role="tab"
+          aria-selected={viewMode === "list"}
+          className="nav-link"
+          onClick={() => setViewMode("list")}
+          style={{
+            borderRadius: 0,
+            background: viewMode === "list" ? "var(--color-primary)" : "transparent",
+            color: viewMode === "list" ? "#fff" : "var(--color-text)",
+          }}
+        >
+          List
+        </button>
+        <button
+          role="tab"
+          aria-selected={viewMode === "calendar"}
+          className="nav-link"
+          onClick={() => setViewMode("calendar")}
+          style={{
+            borderRadius: 0,
+            background: viewMode === "calendar" ? "var(--color-primary)" : "transparent",
+            color: viewMode === "calendar" ? "#fff" : "var(--color-text)",
+          }}
+        >
+          Calendar
+        </button>
+      </div>
+    );
+  };
+
   return (
     <PageContainer title="Reservations">
       <div style={{ marginBottom: 16 }}>
@@ -141,27 +191,40 @@ export function ReservationsPage() {
         <ReservationForm onSubmit={handleCreate} submitting={submitting} />
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "center" }}>
         <button className="nav-link" onClick={() => refresh()} disabled={loading}>
           {loading ? "Refreshing..." : "Refresh"}
         </button>
         <button className="nav-link" onClick={onTogglePolling}>
           {isPolling ? "Stop polling" : "Start polling"}
         </button>
+        {renderViewTabs()}
       </div>
 
-      <ReservationList
-        reservations={data}
-        loading={loading}
-        error={error}
-        onRefresh={refresh}
-        onUpdate={update}
-        onDelete={remove}
-        onSendSms={safeSendSms}
-        onGenerateReceipt={safeGenerateReceipt}
-        onCalendarSync={safeCalendarSync}
-        onFilterChange={handleFilterChange}
-      />
+      {isEnabled("calendarView") && viewMode === "calendar" ? (
+        <ReservationCalendar
+          reservations={data}
+          onSelectReservation={(r) => {
+            // Provide a subtle hint to use list actions
+            const name = r?.guestName || r?.name || "Guest";
+            showToast(`Selected ${name}. Use List view for actions.`, "info", 2500);
+          }}
+        />
+      ) : (
+        <ReservationList
+          reservations={data}
+          loading={loading}
+          error={error}
+          onRefresh={refresh}
+          onUpdate={update}
+          onDelete={remove}
+          onSendSms={safeSendSms}
+          onGenerateReceipt={safeGenerateReceipt}
+          onCalendarSync={safeCalendarSync}
+          onFilterChange={handleFilterChange}
+        />
+      )}
+
       {toast && (
         <Toast
           message={toast.message}
