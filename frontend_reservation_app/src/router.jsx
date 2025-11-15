@@ -2,12 +2,12 @@ import React, { useMemo, useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import useFeatureFlags from "./hooks/useFeatureFlags";
 import useReservations from "./hooks/useReservations";
+import ReservationForm from "./components/ReservationForm";
+import ReservationList from "./components/ReservationList";
 
 /**
- * Placeholder page components for routing until full features are implemented.
- * Each page uses semantic structure and minimal styling hooks.
+ * App-scoped container to provide a consistent page layout.
  */
-
 function PageContainer({ title, children }) {
   return (
     <div className="page-container">
@@ -41,6 +41,7 @@ export function ReservationsPage() {
     [isEnabled]
   );
   const [pollMs, setPollMs] = useState(pollingDefault);
+  const [submitting, setSubmitting] = useState(false);
 
   const {
     data,
@@ -50,26 +51,18 @@ export function ReservationsPage() {
     create,
     update,
     remove,
+    sendSms,
+    generateReceipt,
+    calendarSync,
     isPolling,
     startPolling,
     stopPolling,
+    setQuery,
   } = useReservations({
     pollIntervalMs: pollMs,
     initialQuery: {},
     enableWebsocket: isEnabled("realtime_ws") || experimentsEnabled,
   });
-
-  const onCreateSample = async () => {
-    try {
-      await create({
-        guestName: "Sample Guest",
-        size: 2,
-        time: new Date().toISOString(),
-      });
-    } catch {
-      // ignore in demo UI
-    }
-  };
 
   const onTogglePolling = () => {
     if (isPolling) {
@@ -81,70 +74,56 @@ export function ReservationsPage() {
     }
   };
 
+  const handleCreate = async (payload) => {
+    setSubmitting(true);
+    try {
+      await create(payload);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleFilterChange = (filters) => {
+    // Map UI filters to API query params; pass empty strings as undefined to avoid sending empties
+    const query = {
+      from: filters.from || undefined,
+      to: filters.to || undefined,
+      status: filters.status || undefined,
+      search: filters.search || undefined,
+    };
+    setQuery(query);
+    // Trigger refresh but avoid spamming on each keystroke for "search":
+    // Here we rely on backend to use query in subsequent refreshes; keep manual refresh button.
+  };
+
   return (
     <PageContainer title="Reservations">
+      <div style={{ marginBottom: 16 }}>
+        <h2 style={{ margin: "0 0 8px", fontSize: 18 }}>Create reservation</h2>
+        <ReservationForm onSubmit={handleCreate} submitting={submitting} />
+      </div>
+
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <button className="nav-link" onClick={() => refresh()} disabled={loading}>
           {loading ? "Refreshing..." : "Refresh"}
-        </button>
-        <button className="nav-link" onClick={onCreateSample}>
-          Create sample
         </button>
         <button className="nav-link" onClick={onTogglePolling}>
           {isPolling ? "Stop polling" : "Start polling"}
         </button>
       </div>
 
-      {error && (
-        <div style={{ color: "#EF4444", marginBottom: 12 }}>
-          Error: {error?.message || "Failed to load reservations"}
-        </div>
-      )}
-
-      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-        {data && data.length > 0 ? (
-          data.map((r) => {
-            const id = r.id || r._id || r.reservationId || "unknown";
-            const guest = r.guestName || r.name || "Guest";
-            const when = r.time || r.when || r.datetime || "";
-            const size = r.size || r.partySize || "";
-            return (
-              <li
-                key={id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "10px 12px",
-                  borderBottom: "1px solid rgba(0,0,0,0.06)",
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 600 }}>{guest}</div>
-                  <div style={{ fontSize: 12, color: "#6B7280" }}>
-                    {String(when)} • party {String(size)}
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button
-                    className="nav-link"
-                    onClick={() => update(id, { note: "Updated from UI" })}
-                  >
-                    Update
-                  </button>
-                  <button className="nav-link" onClick={() => remove(id)}>
-                    Delete
-                  </button>
-                </div>
-              </li>
-            );
-          })
-        ) : (
-          <li style={{ padding: 8, color: "#6B7280" }}>
-            {loading ? "Loading reservations..." : "No reservations found."}
-          </li>
-        )}
-      </ul>
+      <ReservationList
+        reservations={data}
+        loading={loading}
+        error={error}
+        onRefresh={refresh}
+        onUpdate={update}
+        onDelete={remove}
+        onSendSms={sendSms}
+        onGenerateReceipt={generateReceipt}
+        onCalendarSync={calendarSync}
+        onFilterChange={handleFilterChange}
+      />
     </PageContainer>
   );
 }
@@ -159,7 +138,7 @@ export function SettingsPage() {
 
 /**
  * AppRoutes configures the route mapping.
- * No API usage yet; this only declares the navigation structure.
+ * Includes the Reservations page which renders ReservationForm and ReservationList.
  */
 // PUBLIC_INTERFACE
 export default function AppRoutes() {
