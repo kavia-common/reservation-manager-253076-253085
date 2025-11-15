@@ -5,6 +5,8 @@ import useReservations from "./hooks/useReservations";
 import ReservationForm from "./components/ReservationForm";
 import ReservationList from "./components/ReservationList";
 import Toast from "./components/Toast";
+import Dashboard from "./pages/Dashboard";
+import Settings from "./pages/Settings";
 
 /**
  * App-scoped container to provide a consistent page layout.
@@ -18,20 +20,6 @@ function PageContainer({ title, children }) {
       </header>
       <section className="page-content">{children}</section>
     </div>
-  );
-}
-
-export function DashboardPage() {
-  const { experimentsEnabled, all } = useFeatureFlags();
-  return (
-    <PageContainer title="Dashboard">
-      <p>Overview of today’s reservations and quick actions will appear here.</p>
-      <div style={{ marginTop: 12, fontSize: 12, color: "#6B7280" }}>
-        <strong>Feature flags:</strong> {all.length > 0 ? all.join(", ") : "none"}
-        {" • "}
-        experimentsEnabled: {experimentsEnabled ? "yes" : "no"}
-      </div>
-    </PageContainer>
   );
 }
 
@@ -186,26 +174,18 @@ export function ReservationsPage() {
   );
 }
 
-export function SettingsPage() {
-  return (
-    <PageContainer title="Settings">
-      <p>Configure preferences, integrations, and notifications.</p>
-    </PageContainer>
-  );
-}
-
 /**
  * AppRoutes configures the route mapping.
- * Includes the Reservations page which renders ReservationForm and ReservationList.
+ * Includes pages: Dashboard, Reservations, Settings.
  */
 // PUBLIC_INTERFACE
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<DashboardPage />} />
+      <Route path="/" element={<Dashboard />} />
       <Route path="/reservations" element={<ReservationsPage />} />
-      <Route path="/settings" element={<SettingsPage />} />
-      <Route path="*" element={<DashboardPage />} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="*" element={<Dashboard />} />
     </Routes>
   );
 }
