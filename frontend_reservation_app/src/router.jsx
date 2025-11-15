@@ -94,8 +94,20 @@ export function ReservationsPage() {
 
   const safeCalendarSync = async (id) => {
     try {
-      await calendarSync(id);
-      showToast("Calendar synced", "success");
+      const res = await calendarSync(id);
+      // If backend returns event info, surface it
+      if (res && typeof res === "object") {
+        const status = res.status || "synced";
+        const link = res.eventLink || res.htmlLink || res.url;
+        if (link) {
+          showToast(`Calendar ${status}. View event: ${link}`, "success");
+        } else {
+          showToast(`Calendar ${status}`, "success");
+        }
+      } else {
+        showToast("Calendar synced", "success");
+      }
+      return res;
     } catch (e) {
       showToast(e?.message || "Failed to sync calendar", "error");
       throw e;

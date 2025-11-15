@@ -84,6 +84,28 @@ export default function ReservationList({
 
   const idOf = (r) => r.id || r._id || r.reservationId || r.uuid || "unknown";
 
+  // Track per-reservation calendar sync result (status and link)
+  const [calendarSyncInfo, setCalendarSyncInfo] = useState({});
+
+  // Wrap onCalendarSync to capture and render status/link inline per row
+  const handleCalendarSync = async (id) => {
+    try {
+      const res = await onCalendarSync?.(id);
+      const status = (res && typeof res === "object" && (res.status || "synced")) || "synced";
+      const link = res?.eventLink || res?.htmlLink || res?.url || "";
+      setCalendarSyncInfo((prev) => ({
+        ...prev,
+        [id]: { status, link },
+      }));
+    } catch {
+      // In case of error, clear any previous success for this id
+      setCalendarSyncInfo((prev) => ({
+        ...prev,
+        [id]: { status: "error" },
+      }));
+    }
+  };
+
   return (
     <div>
       <div
@@ -244,12 +266,40 @@ export default function ReservationList({
                           <button
                             className="nav-link"
                             title="Sync to calendar"
-                            onClick={() => onCalendarSync(id)}
+                            onClick={() => handleCalendarSync(id)}
                           >
                             Calendar
                           </button>
                         )}
                       </div>
+                      {/* Inline Calendar sync info */}
+                      {calendarSyncInfo[id] && (
+                        <div style={{ marginTop: 6, fontSize: 12 }}>
+                          {calendarSyncInfo[id].status === "error" ? (
+                            <span style={{ color: "var(--color-error)" }}>
+                              Calendar sync failed
+                            </span>
+                          ) : (
+                            <>
+                              <span style={{ color: "#065F46" }}>
+                                Calendar {calendarSyncInfo[id].status}
+                              </span>
+                              {calendarSyncInfo[id].link && (
+                                <>
+                                  {" • "}
+                                  <a
+                                    href={calendarSyncInfo[id].link}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    Open event
+                                  </a>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
                       {!!onSendSms && (
                         <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
                           <input
@@ -470,7 +520,7 @@ export default function ReservationList({
                             <button
                               className="nav-link"
                               title="Sync to calendar"
-                              onClick={() => onCalendarSync(id)}
+                              onClick={() => handleCalendarSync(id)}
                             >
                               Calendar
                             </button>
