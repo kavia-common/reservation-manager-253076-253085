@@ -139,6 +139,22 @@ async function request(method, path, { query, body, headers } = {}) {
 }
 
 /**
+ * Create a redacted version of error info safe for debug logs.
+ * Avoids leaking PII or verbose details by only logging selected keys.
+ * @param {{ status?:number, code?:string, message?:string, details?:any }} err
+ * @returns {{ status?:number, code?:string, message?:string, hasDetails?:boolean }}
+ */
+function sanitizeErrorForLog(err) {
+  const safe = {
+    status: typeof err?.status === "number" ? err.status : undefined,
+    code: err?.code || undefined,
+    message: typeof err?.message === "string" ? "[REDACTED_MESSAGE]" : undefined,
+    hasDetails: !!err?.details,
+  };
+  return safe;
+}
+
+/**
  * Normalize any error into a standard shape.
  * @param {any} error - Original error
  * @param {Object} [fallback] - Fallback error metadata
