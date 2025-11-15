@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import SmsModal from "./SmsModal";
+import ReceiptModal from "./ReceiptModal";
 
 /**
  * ReservationList
@@ -36,7 +38,11 @@ export default function ReservationList({
     status: "",
     search: "",
   });
-  const [smsDraft, setSmsDraft] = useState({}); // { [id]: "message" }
+  const [smsDraft, setSmsDraft] = useState({}); // legacy state (kept if needed elsewhere)
+
+  // Modal state
+  const [smsModal, setSmsModal] = useState({ open: false, id: null, guestName: "", phone: "" });
+  const [receiptModal, setReceiptModal] = useState({ open: false, id: null });
 
   const filtered = useMemo(() => {
     const list = Array.isArray(reservations) ? reservations : [];
@@ -284,6 +290,222 @@ export default function ReservationList({
         </table>
       </div>
     </div>
+  );
+
+  // Render modals at the end so they overlay correctly
+  return (
+    <>
+      <div>
+        <div
+          className="page-subtitle"
+          style={{
+            marginBottom: 12,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+            alignItems: "end",
+          }}
+        >
+          <div style={{ display: "grid", gap: 4 }}>
+            <label htmlFor="from">From</label>
+            <input
+              id="from"
+              name="from"
+              type="datetime-local"
+              value={filters.from}
+              onChange={handleFilterChange}
+              style={inputStyle}
+            />
+          </div>
+          <div style={{ display: "grid", gap: 4 }}>
+            <label htmlFor="to">To</label>
+            <input
+              id="to"
+              name="to"
+              type="datetime-local"
+              value={filters.to}
+              onChange={handleFilterChange}
+              style={inputStyle}
+            />
+          </div>
+          <div style={{ display: "grid", gap: 4 }}>
+            <label htmlFor="status">Status</label>
+            <select
+              id="status"
+              name="status"
+              value={filters.status}
+              onChange={handleFilterChange}
+              style={inputStyle}
+            >
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="seated">Seated</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div style={{ display: "grid", gap: 4, flex: "1 1 240px" }}>
+            <label htmlFor="search">Search</label>
+            <input
+              id="search"
+              name="search"
+              type="text"
+              placeholder="Search by name or phone"
+              value={filters.search}
+              onChange={handleFilterChange}
+              style={inputStyle}
+            />
+          </div>
+          <button
+            className="nav-link"
+            onClick={onRefresh}
+            disabled={loading}
+            aria-busy={loading ? "true" : "false"}
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+
+        {error && (
+          <div style={{ color: "var(--color-error)", marginBottom: 8 }}>
+            Error: {error?.message || "Failed to load reservations"}
+          </div>
+        )}
+
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              background: "var(--color-surface)",
+              borderRadius: 12,
+              overflow: "hidden",
+            }}
+          >
+            <thead>
+              <tr style={theadRowStyle}>
+                <th style={thStyle}>Guest</th>
+                <th style={thStyle}>When</th>
+                <th style={thStyle}>Party</th>
+                <th style={thStyle}>Status</th>
+                <th style={thStyle}>Phone</th>
+                <th style={thStyle}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length > 0 ? (
+                filtered.map((r) => {
+                  const id = idOf(r);
+                  const guest = r.guestName || r.name || "Guest";
+                  const when = formatWhen(r);
+                  const size = r.size || r.partySize || "";
+                  const status = r.status || "pending";
+                  const phone = r.phone || "";
+                  return (
+                    <tr key={id} style={trStyle}>
+                      <td style={tdStyle}>
+                        <div style={{ fontWeight: 600 }}>{guest}</div>
+                        {r.notes && (
+                          <div style={{ fontSize: 12, color: "#6B7280" }}>
+                            {r.notes}
+                          </div>
+                        )}
+                      </td>
+                      <td style={tdStyle}>{when}</td>
+                      <td style={tdStyle}>{String(size)}</td>
+                      <td style={tdStyle}>
+                        <span style={statusPillStyle(status)}>{String(status)}</span>
+                      </td>
+                      <td style={tdStyle}>{phone}</td>
+                      <td style={{ ...tdStyle, minWidth: 360 }}>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          <button
+                            className="nav-link"
+                            title="Mark confirmed"
+                            onClick={() => onUpdate?.(id, { status: "confirmed" })}
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            className="nav-link"
+                            title="Mark cancelled"
+                            onClick={() => onUpdate?.(id, { status: "cancelled" })}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            className="nav-link"
+                            title="Delete reservation"
+                            onClick={() => onDelete?.(id)}
+                          >
+                            Delete
+                          </button>
+                          {!!onSendSms && (
+                            <button
+                              className="nav-link"
+                              title="Send SMS"
+                              onClick={() =>
+                                setSmsModal({
+                                  open: true,
+                                  id,
+                                  guestName: guest,
+                                  phone,
+                                })
+                              }
+                            >
+                              SMS
+                            </button>
+                          )}
+                          {!!onGenerateReceipt && (
+                            <button
+                              className="nav-link"
+                              title="Generate receipt"
+                              onClick={() => setReceiptModal({ open: true, id })}
+                            >
+                              Receipt
+                            </button>
+                          )}
+                          {!!onCalendarSync && (
+                            <button
+                              className="nav-link"
+                              title="Sync to calendar"
+                              onClick={() => onCalendarSync(id)}
+                            >
+                              Calendar
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6} style={{ ...tdStyle, color: "#6B7280" }}>
+                    {loading ? "Loading..." : "No reservations match the current filters."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <SmsModal
+        open={smsModal.open}
+        guestName={smsModal.guestName}
+        phone={smsModal.phone}
+        onClose={() => setSmsModal({ open: false, id: null, guestName: "", phone: "" })}
+        onSend={(msg) => onSendSms?.(smsModal.id, msg)}
+      />
+      <ReceiptModal
+        open={receiptModal.open}
+        reservationId={receiptModal.id}
+        onClose={() => setReceiptModal({ open: false, id: null })}
+        onGenerate={() => onGenerateReceipt?.(receiptModal.id)}
+      />
+    </>
   );
 }
 

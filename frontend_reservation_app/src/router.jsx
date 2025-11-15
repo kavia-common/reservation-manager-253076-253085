@@ -4,6 +4,7 @@ import useFeatureFlags from "./hooks/useFeatureFlags";
 import useReservations from "./hooks/useReservations";
 import ReservationForm from "./components/ReservationForm";
 import ReservationList from "./components/ReservationList";
+import Toast from "./components/Toast";
 
 /**
  * App-scoped container to provide a consistent page layout.
@@ -64,6 +65,43 @@ export function ReservationsPage() {
     enableWebsocket: isEnabled("realtime_ws") || experimentsEnabled,
   });
 
+  const [toast, setToast] = useState(null); // { message, type }
+
+  const showToast = (message, type = "info", ms = 3000) => {
+    setToast({ message, type, ms });
+  };
+
+  const safeSendSms = async (id, message) => {
+    try {
+      await sendSms(id, message);
+      showToast("SMS sent successfully", "success");
+    } catch (e) {
+      showToast(e?.message || "Failed to send SMS", "error");
+      throw e;
+    }
+  };
+
+  const safeGenerateReceipt = async (id) => {
+    try {
+      const res = await generateReceipt(id);
+      showToast("Receipt generated", "success");
+      return res;
+    } catch (e) {
+      showToast(e?.message || "Failed to generate receipt", "error");
+      throw e;
+    }
+  };
+
+  const safeCalendarSync = async (id) => {
+    try {
+      await calendarSync(id);
+      showToast("Calendar synced", "success");
+    } catch (e) {
+      showToast(e?.message || "Failed to sync calendar", "error");
+      throw e;
+    }
+  };
+
   const onTogglePolling = () => {
     if (isPolling) {
       stopPolling();
@@ -119,11 +157,19 @@ export function ReservationsPage() {
         onRefresh={refresh}
         onUpdate={update}
         onDelete={remove}
-        onSendSms={sendSms}
-        onGenerateReceipt={generateReceipt}
-        onCalendarSync={calendarSync}
+        onSendSms={safeSendSms}
+        onGenerateReceipt={safeGenerateReceipt}
+        onCalendarSync={safeCalendarSync}
         onFilterChange={handleFilterChange}
       />
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          duration={toast.ms}
+          onClose={() => setToast(null)}
+        />
+      )}
     </PageContainer>
   );
 }
